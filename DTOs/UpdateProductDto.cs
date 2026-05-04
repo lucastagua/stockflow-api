@@ -10,7 +10,7 @@ public class UpdateProductDto
 
     public decimal CostUsd { get; set; }
 
-    public decimal PriceArs { get; set; }
+    public decimal ProfitMarginPercentage { get; set; }
 
     public int Stock { get; set; }
 

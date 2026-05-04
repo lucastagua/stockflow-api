@@ -42,6 +42,9 @@ public class AppDbContext : DbContext
             entity.Property(p => p.CostUsd)
                 .HasPrecision(18, 2);
 
+            entity.Property(p => p.ProfitMarginPercentage)
+                .HasPrecision(5, 2);
+
             entity.Property(p => p.PriceArs)
                 .HasPrecision(18, 2);
 

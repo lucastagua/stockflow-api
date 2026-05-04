@@ -12,6 +12,8 @@ public class ProductResponseDto
 
     public decimal CostUsd { get; set; }
 
+    public decimal ProfitMarginPercentage { get; set; }
+
     public decimal PriceArs { get; set; }
 
     public int Stock { get; set; }

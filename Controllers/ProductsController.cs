@@ -63,6 +63,7 @@ public class ProductsController : ControllerBase
                 Brand = p.Brand,
                 Sku = p.Sku,
                 CostUsd = p.CostUsd,
+                ProfitMarginPercentage = p.ProfitMarginPercentage,
                 PriceArs = p.PriceArs,
                 Stock = p.Stock,
                 MinimumStock = p.MinimumStock,
@@ -89,6 +90,7 @@ public class ProductsController : ControllerBase
                 Brand = p.Brand,
                 Sku = p.Sku,
                 CostUsd = p.CostUsd,
+                ProfitMarginPercentage = p.ProfitMarginPercentage,
                 PriceArs = p.PriceArs,
                 Stock = p.Stock,
                 MinimumStock = p.MinimumStock,
@@ -129,11 +131,11 @@ public class ProductsController : ControllerBase
             });
         }
 
-        if (createProductDto.PriceArs < 0)
+        if (createProductDto.ProfitMarginPercentage < 0)
         {
             return BadRequest(new
             {
-                message = "Price in ARS cannot be negative."
+                message = "Profit margin percentage cannot be negative."
             });
         }
 
@@ -179,13 +181,33 @@ public class ProductsController : ControllerBase
             }
         }
 
-        var product = new Product
+        var latestExchangeRate = await _context.ExchangeRates
+            .OrderByDescending(e => e.Date)
+            .FirstOrDefaultAsync();
+
+        if (latestExchangeRate is null)
+        {
+            return BadRequest(new
+            {
+                message = "No exchange rate has been registered yet. Please register an exchange rate before creating products."
+            });
+        }
+
+        var marginMultiplier = 1 + (createProductDto.ProfitMarginPercentage / 100);
+
+        var calculatedPriceArs = Math.Round(
+            createProductDto.CostUsd * latestExchangeRate.Value * marginMultiplier,
+            2
+        );
+
+    var product = new Product
         {
             Name = createProductDto.Name.Trim(),
             Brand = createProductDto.Brand?.Trim(),
             Sku = createProductDto.Sku?.Trim(),
             CostUsd = createProductDto.CostUsd,
-            PriceArs = createProductDto.PriceArs,
+            ProfitMarginPercentage = createProductDto.ProfitMarginPercentage,
+            PriceArs = calculatedPriceArs,
             Stock = createProductDto.Stock,
             MinimumStock = createProductDto.MinimumStock,
             CategoryId = createProductDto.CategoryId,
@@ -203,6 +225,7 @@ public class ProductsController : ControllerBase
             Brand = product.Brand,
             Sku = product.Sku,
             CostUsd = product.CostUsd,
+            ProfitMarginPercentage = product.ProfitMarginPercentage,
             PriceArs = product.PriceArs,
             Stock = product.Stock,
             MinimumStock = product.MinimumStock,
@@ -249,11 +272,11 @@ public class ProductsController : ControllerBase
             });
         }
 
-        if (updateProductDto.PriceArs < 0)
+        if (updateProductDto.ProfitMarginPercentage < 0)
         {
             return BadRequest(new
             {
-                message = "Price in ARS cannot be negative."
+                message = "Profit margin percentage cannot be negative."
             });
         }
 
@@ -302,11 +325,31 @@ public class ProductsController : ControllerBase
             }
         }
 
+        var latestExchangeRate = await _context.ExchangeRates
+            .OrderByDescending(e => e.Date)
+            .FirstOrDefaultAsync();
+
+        if (latestExchangeRate is null)
+        {
+            return BadRequest(new
+            {
+                message = "No exchange rate has been registered yet. Please register an exchange rate before updating products."
+            });
+        }
+
+        var marginMultiplier = 1 + (updateProductDto.ProfitMarginPercentage / 100);
+
+        var calculatedPriceArs = Math.Round(
+            updateProductDto.CostUsd * latestExchangeRate.Value * marginMultiplier,
+            2
+        );
+
         product.Name = updateProductDto.Name.Trim();
         product.Brand = updateProductDto.Brand?.Trim();
         product.Sku = updateProductDto.Sku?.Trim();
         product.CostUsd = updateProductDto.CostUsd;
-        product.PriceArs = updateProductDto.PriceArs;
+        product.ProfitMarginPercentage = updateProductDto.ProfitMarginPercentage;
+        product.PriceArs = calculatedPriceArs;
         product.Stock = updateProductDto.Stock;
         product.MinimumStock = updateProductDto.MinimumStock;
         product.IsActive = updateProductDto.IsActive;
