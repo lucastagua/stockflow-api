@@ -18,10 +18,43 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetProducts()
+    public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetProducts(
+    string? search,
+    int? categoryId,
+    bool? isActive,
+    bool? lowStock)
     {
-        var products = await _context.Products
+        var query = _context.Products
             .Include(p => p.Category)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+
+            query = query.Where(p =>
+                p.Name.ToLower().Contains(normalizedSearch) ||
+                (p.Brand != null && p.Brand.ToLower().Contains(normalizedSearch)) ||
+                (p.Sku != null && p.Sku.ToLower().Contains(normalizedSearch))
+            );
+        }
+
+        if (categoryId.HasValue)
+        {
+            query = query.Where(p => p.CategoryId == categoryId.Value);
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(p => p.IsActive == isActive.Value);
+        }
+
+        if (lowStock.HasValue && lowStock.Value)
+        {
+            query = query.Where(p => p.Stock <= p.MinimumStock);
+        }
+
+        var products = await query
             .OrderBy(p => p.Name)
             .Select(p => new ProductResponseDto
             {
@@ -163,10 +196,26 @@ public class ProductsController : ControllerBase
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
+        var productResponse = new ProductResponseDto
+        {
+            Id = product.Id,
+            Name = product.Name,
+            Brand = product.Brand,
+            Sku = product.Sku,
+            CostUsd = product.CostUsd,
+            PriceArs = product.PriceArs,
+            Stock = product.Stock,
+            MinimumStock = product.MinimumStock,
+            IsActive = product.IsActive,
+            CreatedAt = product.CreatedAt,
+            CategoryId = product.CategoryId,
+            CategoryName = string.Empty
+        };
+
         return CreatedAtAction(
             nameof(GetProductById),
             new { id = product.Id },
-            product
+            productResponse
         );
     }
 
