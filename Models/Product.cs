@@ -27,4 +27,6 @@ public class Product
     public int CategoryId { get; set; }
 
     public Category? Category { get; set; }
+
+    public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 }

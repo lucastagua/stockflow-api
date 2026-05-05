@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ExchangeRate> ExchangeRates => Set<ExchangeRate>();
 
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -57,6 +59,16 @@ public class AppDbContext : DbContext
         {
             entity.Property(e => e.Value)
                 .HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<StockMovement>(entity =>
+        {
+            entity.Property(s => s.Reason)
+                .HasMaxLength(250);
+
+            entity.HasOne(s => s.Product)
+                .WithMany(p => p.StockMovements)
+                .HasForeignKey(s => s.ProductId);
         });
     }
 }
