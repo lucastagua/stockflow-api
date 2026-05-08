@@ -29,4 +29,6 @@ public class Product
     public Category? Category { get; set; }
 
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
+
+    public ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
 }

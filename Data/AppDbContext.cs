@@ -18,6 +18,10 @@ public class AppDbContext : DbContext
 
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
+    public DbSet<Sale> Sales => Set<Sale>();
+
+    public DbSet<SaleItem> SaleItems => Set<SaleItem>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -69,6 +73,29 @@ public class AppDbContext : DbContext
             entity.HasOne(s => s.Product)
                 .WithMany(p => p.StockMovements)
                 .HasForeignKey(s => s.ProductId);
+        });
+
+        modelBuilder.Entity<Sale>(entity =>
+        {
+            entity.Property(s => s.TotalAmountArs)
+                .HasPrecision(18, 2);
+
+            entity.HasMany(s => s.Items)
+                .WithOne(i => i.Sale)
+                .HasForeignKey(i => i.SaleId);
+        });
+
+        modelBuilder.Entity<SaleItem>(entity =>
+        {
+            entity.Property(i => i.UnitPriceArs)
+                .HasPrecision(18, 2);
+
+            entity.Property(i => i.SubtotalArs)
+                .HasPrecision(18, 2);
+
+            entity.HasOne(i => i.Product)
+                .WithMany(p => p.SaleItems)
+                .HasForeignKey(i => i.ProductId);
         });
     }
 }
