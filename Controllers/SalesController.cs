@@ -215,4 +215,66 @@ public class SalesController : ControllerBase
             response
         );
     }
+
+    [HttpPost("{id:int}/cancel")]
+    public async Task<IActionResult> CancelSale(int id)
+    {
+        var sale = await _context.Sales
+            .Include(s => s.Items)
+                .ThenInclude(i => i.Product)
+            .FirstOrDefaultAsync(s => s.Id == id);
+
+        if (sale is null)
+        {
+            return NotFound(new
+            {
+                message = "Sale not found."
+            });
+        }
+
+        if (sale.Status == SaleStatus.Cancelled)
+        {
+            return BadRequest(new
+            {
+                message = "Sale is already cancelled."
+            });
+        }
+
+        foreach (var item in sale.Items)
+        {
+            var product = item.Product;
+
+            if (product is null)
+            {
+                return BadRequest(new
+                {
+                    message = $"Product with ID {item.ProductId} was not found."
+                });
+            }
+
+            var previousStock = product.Stock;
+            var newStock = previousStock + item.Quantity;
+
+            product.Stock = newStock;
+
+            var stockMovement = new StockMovement
+            {
+                ProductId = product.Id,
+                Type = StockMovementType.In,
+                Quantity = item.Quantity,
+                PreviousStock = previousStock,
+                NewStock = newStock,
+                Reason = $"Sale #{sale.Id} cancelled",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.StockMovements.Add(stockMovement);
+        }
+
+        sale.Status = SaleStatus.Cancelled;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
