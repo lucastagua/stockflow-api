@@ -18,8 +18,27 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("summary")]
-    public async Task<ActionResult<DashboardSummaryDto>> GetSummary()
+    public async Task<ActionResult<DashboardSummaryDto>> GetSummary(DateTime? from, DateTime? to)
     {
+        var salesQuery = _context.Sales.AsQueryable();
+        var stockMovementsQuery = _context.StockMovements.AsQueryable();
+
+        if (from.HasValue)
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc);
+
+            salesQuery = salesQuery.Where(s => s.CreatedAt >= fromUtc);
+            stockMovementsQuery = stockMovementsQuery.Where(s => s.CreatedAt >= fromUtc);
+        }
+
+        if (to.HasValue)
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value.Date.AddDays(1), DateTimeKind.Utc);
+
+            salesQuery = salesQuery.Where(s => s.CreatedAt < toUtc);
+            stockMovementsQuery = stockMovementsQuery.Where(s => s.CreatedAt < toUtc);
+        }
+
         var totalProducts = await _context.Products.CountAsync();
 
         var activeProducts = await _context.Products
@@ -28,17 +47,17 @@ public class DashboardController : ControllerBase
         var lowStockProducts = await _context.Products
             .CountAsync(p => p.Stock <= p.MinimumStock);
 
-        var completedSales = await _context.Sales
+        var completedSales = await salesQuery
             .CountAsync(s => s.Status == SaleStatus.Completed);
 
-        var cancelledSales = await _context.Sales
+        var cancelledSales = await salesQuery
             .CountAsync(s => s.Status == SaleStatus.Cancelled);
 
-        var totalRevenueArs = await _context.Sales
+        var totalRevenueArs = await salesQuery
             .Where(s => s.Status == SaleStatus.Completed)
             .SumAsync(s => s.TotalAmountArs);
 
-        var recentSales = await _context.Sales
+        var recentSales = await salesQuery
             .OrderByDescending(s => s.CreatedAt)
             .Take(5)
             .Select(s => new RecentSaleDto
@@ -50,7 +69,7 @@ public class DashboardController : ControllerBase
             })
             .ToListAsync();
 
-        var recentStockMovements = await _context.StockMovements
+        var recentStockMovements = await stockMovementsQuery
             .Include(s => s.Product)
             .OrderByDescending(s => s.CreatedAt)
             .Take(5)
