@@ -18,10 +18,12 @@ public class SalesController : ControllerBase
     }
 
     [HttpGet]
-    [HttpGet]
     public async Task<ActionResult<PagedResponseDto<SaleResponseDto>>> GetSales(
-    int pageNumber = 1,
-    int pageSize = 10)
+        SaleStatus? status,
+        DateTime? from,
+        DateTime? to,
+        int pageNumber = 1,
+        int pageSize = 10)
     {
         if (pageNumber <= 0)
         {
@@ -43,6 +45,25 @@ public class SalesController : ControllerBase
             .Include(s => s.Items)
                 .ThenInclude(i => i.Product)
             .AsQueryable();
+
+        if (status.HasValue)
+        {
+            query = query.Where(s => s.Status == status.Value);
+        }
+
+        if (from.HasValue)
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc);
+
+            query = query.Where(s => s.CreatedAt >= fromUtc);
+        }
+
+        if (to.HasValue)
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value.Date.AddDays(1), DateTimeKind.Utc);
+
+            query = query.Where(s => s.CreatedAt < toUtc);
+        }
 
         var totalRecords = await query.CountAsync();
 
