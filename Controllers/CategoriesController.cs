@@ -131,7 +131,6 @@ public class CategoriesController : ControllerBase
     public async Task<IActionResult> DeleteCategory(int id)
     {
         var category = await _context.Categories
-            .Include(c => c.Products)
             .FirstOrDefaultAsync(c => c.Id == id);
 
         if (category is null)
@@ -142,15 +141,27 @@ public class CategoriesController : ControllerBase
             });
         }
 
-        if (category.Products.Any())
+        if (!category.IsActive)
         {
             return BadRequest(new
             {
-                message = "Cannot delete a category that has products assigned."
+                message = "Category is already inactive."
             });
         }
 
-        _context.Categories.Remove(category);
+        var hasActiveProducts = await _context.Products
+            .AnyAsync(p => p.CategoryId == id && p.IsActive);
+
+        if (hasActiveProducts)
+        {
+            return BadRequest(new
+            {
+                message = "Cannot deactivate a category that has active products assigned."
+            });
+        }
+
+        category.IsActive = false;
+
         await _context.SaveChangesAsync();
 
         return NoContent();

@@ -186,14 +186,22 @@ public class ProductsController : ControllerBase
             });
         }
 
-        var categoryExists = await _context.Categories
-            .AnyAsync(c => c.Id == createProductDto.CategoryId);
+        var category = await _context.Categories
+        .FirstOrDefaultAsync(c => c.Id == createProductDto.CategoryId);
 
-        if (!categoryExists)
+        if (category is null)
         {
             return BadRequest(new
             {
                 message = "The selected category does not exist."
+            });
+        }
+
+        if (!category.IsActive)
+        {
+            return BadRequest(new
+            {
+                message = "The selected category is inactive."
             });
         }
 
@@ -327,14 +335,22 @@ public class ProductsController : ControllerBase
             });
         }
 
-        var categoryExists = await _context.Categories
-            .AnyAsync(c => c.Id == updateProductDto.CategoryId);
+        var category = await _context.Categories
+        .FirstOrDefaultAsync(c => c.Id == updateProductDto.CategoryId);
 
-        if (!categoryExists)
+        if (category is null)
         {
             return BadRequest(new
             {
                 message = "The selected category does not exist."
+            });
+        }
+
+        if (!category.IsActive)
+        {
+            return BadRequest(new
+            {
+                message = "The selected category is inactive."
             });
         }
 
@@ -405,7 +421,16 @@ public class ProductsController : ControllerBase
             });
         }
 
-        _context.Products.Remove(product);
+        if (!product.IsActive)
+        {
+            return BadRequest(new
+            {
+                message = "Product is already inactive."
+            });
+        }
+
+        product.IsActive = false;
+
         await _context.SaveChangesAsync();
 
         return NoContent();
