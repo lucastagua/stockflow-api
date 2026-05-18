@@ -18,11 +18,36 @@ public class StockMovementsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<StockMovementResponseDto>>> GetStockMovements()
+    public async Task<ActionResult<PagedResponseDto<StockMovementResponseDto>>> GetStockMovements(
+     int pageNumber = 1,
+     int pageSize = 10)
     {
-        var movements = await _context.StockMovements
+        if (pageNumber <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Page number must be greater than zero."
+            });
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            return BadRequest(new
+            {
+                message = "Page size must be between 1 and 100."
+            });
+        }
+
+        var query = _context.StockMovements
             .Include(s => s.Product)
+            .AsQueryable();
+
+        var totalRecords = await query.CountAsync();
+
+        var movements = await query
             .OrderByDescending(s => s.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(s => new StockMovementResponseDto
             {
                 Id = s.Id,
@@ -37,12 +62,40 @@ public class StockMovementsController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(movements);
+        var response = new PagedResponseDto<StockMovementResponseDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            Data = movements
+        };
+
+        return Ok(response);
     }
 
     [HttpGet("product/{productId:int}")]
-    public async Task<ActionResult<IEnumerable<StockMovementResponseDto>>> GetMovementsByProduct(int productId)
+    public async Task<ActionResult<PagedResponseDto<StockMovementResponseDto>>> GetMovementsByProduct(
+    int productId,
+    int pageNumber = 1,
+    int pageSize = 10)
     {
+        if (pageNumber <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Page number must be greater than zero."
+            });
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            return BadRequest(new
+            {
+                message = "Page size must be between 1 and 100."
+            });
+        }
+
         var productExists = await _context.Products
             .AnyAsync(p => p.Id == productId);
 
@@ -54,10 +107,17 @@ public class StockMovementsController : ControllerBase
             });
         }
 
-        var movements = await _context.StockMovements
+        var query = _context.StockMovements
             .Include(s => s.Product)
             .Where(s => s.ProductId == productId)
+            .AsQueryable();
+
+        var totalRecords = await query.CountAsync();
+
+        var movements = await query
             .OrderByDescending(s => s.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(s => new StockMovementResponseDto
             {
                 Id = s.Id,
@@ -72,7 +132,16 @@ public class StockMovementsController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(movements);
+        var response = new PagedResponseDto<StockMovementResponseDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            Data = movements
+        };
+
+        return Ok(response);
     }
 
     [HttpPost]

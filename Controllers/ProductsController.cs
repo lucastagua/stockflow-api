@@ -18,12 +18,30 @@ public class ProductsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetProducts(
+    public async Task<ActionResult<PagedResponseDto<ProductResponseDto>>> GetProducts(
     string? search,
     int? categoryId,
     bool? isActive,
-    bool? lowStock)
+    bool? lowStock,
+    int pageNumber = 1,
+    int pageSize = 10)
     {
+        if (pageNumber <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Page number must be greater than zero."
+            });
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            return BadRequest(new
+            {
+                message = "Page size must be between 1 and 100."
+            });
+        }
+
         var query = _context.Products
             .Include(p => p.Category)
             .AsQueryable();
@@ -54,8 +72,12 @@ public class ProductsController : ControllerBase
             query = query.Where(p => p.Stock <= p.MinimumStock);
         }
 
+        var totalRecords = await query.CountAsync();
+
         var products = await query
             .OrderBy(p => p.Name)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new ProductResponseDto
             {
                 Id = p.Id,
@@ -74,7 +96,16 @@ public class ProductsController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(products);
+        var response = new PagedResponseDto<ProductResponseDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            Data = products
+        };
+
+        return Ok(response);
     }
 
     [HttpGet("{id:int}")]

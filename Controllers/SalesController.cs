@@ -18,12 +18,38 @@ public class SalesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<SaleResponseDto>>> GetSales()
+    [HttpGet]
+    public async Task<ActionResult<PagedResponseDto<SaleResponseDto>>> GetSales(
+    int pageNumber = 1,
+    int pageSize = 10)
     {
-        var sales = await _context.Sales
+        if (pageNumber <= 0)
+        {
+            return BadRequest(new
+            {
+                message = "Page number must be greater than zero."
+            });
+        }
+
+        if (pageSize <= 0 || pageSize > 100)
+        {
+            return BadRequest(new
+            {
+                message = "Page size must be between 1 and 100."
+            });
+        }
+
+        var query = _context.Sales
             .Include(s => s.Items)
                 .ThenInclude(i => i.Product)
+            .AsQueryable();
+
+        var totalRecords = await query.CountAsync();
+
+        var sales = await query
             .OrderByDescending(s => s.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(s => new SaleResponseDto
             {
                 Id = s.Id,
@@ -41,7 +67,16 @@ public class SalesController : ControllerBase
             })
             .ToListAsync();
 
-        return Ok(sales);
+        var response = new PagedResponseDto<SaleResponseDto>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalRecords = totalRecords,
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            Data = sales
+        };
+
+        return Ok(response);
     }
 
     [HttpGet("{id:int}")]
