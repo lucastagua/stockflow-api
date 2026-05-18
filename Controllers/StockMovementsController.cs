@@ -18,9 +18,14 @@ public class StockMovementsController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<ActionResult<PagedResponseDto<StockMovementResponseDto>>> GetStockMovements(
-     int pageNumber = 1,
-     int pageSize = 10)
+    int? productId,
+    StockMovementType? type,
+    DateTime? from,
+    DateTime? to,
+    int pageNumber = 1,
+    int pageSize = 10)
     {
         if (pageNumber <= 0)
         {
@@ -41,6 +46,30 @@ public class StockMovementsController : ControllerBase
         var query = _context.StockMovements
             .Include(s => s.Product)
             .AsQueryable();
+
+        if (productId.HasValue)
+        {
+            query = query.Where(s => s.ProductId == productId.Value);
+        }
+
+        if (type.HasValue)
+        {
+            query = query.Where(s => s.Type == type.Value);
+        }
+
+        if (from.HasValue)
+        {
+            var fromUtc = DateTime.SpecifyKind(from.Value.Date, DateTimeKind.Utc);
+
+            query = query.Where(s => s.CreatedAt >= fromUtc);
+        }
+
+        if (to.HasValue)
+        {
+            var toUtc = DateTime.SpecifyKind(to.Value.Date.AddDays(1), DateTimeKind.Utc);
+
+            query = query.Where(s => s.CreatedAt < toUtc);
+        }
 
         var totalRecords = await query.CountAsync();
 
