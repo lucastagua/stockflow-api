@@ -448,6 +448,34 @@ public class ProductsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("low-stock")]
+    public async Task<ActionResult<IEnumerable<ProductResponseDto>>> GetLowStockProducts()
+    {
+        var products = await _context.Products
+            .Include(p => p.Category)
+            .Where(p => p.IsActive && p.Stock <= p.MinimumStock)
+            .OrderBy(p => p.Stock)
+            .Select(p => new ProductResponseDto
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Brand = p.Brand,
+                Sku = p.Sku,
+                CostUsd = p.CostUsd,
+                ProfitMarginPercentage = p.ProfitMarginPercentage,
+                PriceArs = p.PriceArs,
+                Stock = p.Stock,
+                MinimumStock = p.MinimumStock,
+                IsActive = p.IsActive,
+                CreatedAt = p.CreatedAt,
+                CategoryId = p.CategoryId,
+                CategoryName = p.Category != null ? p.Category.Name : string.Empty
+            })
+            .ToListAsync();
+
+        return Ok(products);
+    }
+
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> DeleteProduct(int id)
     {
