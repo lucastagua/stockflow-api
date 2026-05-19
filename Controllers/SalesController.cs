@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using StockFlow.Api.Data;
 using StockFlow.Api.DTOs;
 using StockFlow.Api.Models;
+using StockFlow.Api.Helpers;
 
 namespace StockFlow.Api.Controllers;
 
@@ -19,13 +20,12 @@ public class SalesController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResponseDto<SaleResponseDto>>> GetSales(
-        SaleStatus? status,
-        DateTime? from,
-        DateTime? to,
-        int pageNumber = 1,
-        int pageSize = 10)
+    SaleStatus? status,
+    DateTime? from,
+    DateTime? to,
+    [FromQuery] PaginationParams paginationParams)
     {
-        if (pageNumber <= 0)
+        if (paginationParams.PageNumber <= 0)
         {
             return BadRequest(new
             {
@@ -33,11 +33,11 @@ public class SalesController : ControllerBase
             });
         }
 
-        if (pageSize <= 0 || pageSize > 100)
+        if (paginationParams.PageSize <= 0)
         {
             return BadRequest(new
             {
-                message = "Page size must be between 1 and 100."
+                message = "Page size must be greater than zero."
             });
         }
 
@@ -69,8 +69,8 @@ public class SalesController : ControllerBase
 
         var sales = await query
             .OrderByDescending(s => s.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
             .Select(s => new SaleResponseDto
             {
                 Id = s.Id,
@@ -90,10 +90,10 @@ public class SalesController : ControllerBase
 
         var response = new PagedResponseDto<SaleResponseDto>
         {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
+            PageNumber = paginationParams.PageNumber,
+            PageSize = paginationParams.PageSize,
             TotalRecords = totalRecords,
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationParams.PageSize),
             Data = sales
         };
 

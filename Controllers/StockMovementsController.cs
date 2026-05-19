@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using StockFlow.Api.Data;
 using StockFlow.Api.DTOs;
 using StockFlow.Api.Models;
+using StockFlow.Api.Helpers;
 
 namespace StockFlow.Api.Controllers;
 
@@ -18,16 +19,14 @@ public class StockMovementsController : ControllerBase
     }
 
     [HttpGet]
-    [HttpGet]
     public async Task<ActionResult<PagedResponseDto<StockMovementResponseDto>>> GetStockMovements(
-    int? productId,
-    StockMovementType? type,
-    DateTime? from,
-    DateTime? to,
-    int pageNumber = 1,
-    int pageSize = 10)
+        int? productId,
+        StockMovementType? type,
+        DateTime? from,
+        DateTime? to,
+        [FromQuery] PaginationParams paginationParams)
     {
-        if (pageNumber <= 0)
+        if (paginationParams.PageNumber <= 0)
         {
             return BadRequest(new
             {
@@ -35,7 +34,7 @@ public class StockMovementsController : ControllerBase
             });
         }
 
-        if (pageSize <= 0 || pageSize > 100)
+        if (paginationParams.PageSize <= 0 || paginationParams.PageSize > 100)
         {
             return BadRequest(new
             {
@@ -75,8 +74,8 @@ public class StockMovementsController : ControllerBase
 
         var movements = await query
             .OrderByDescending(s => s.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
             .Select(s => new StockMovementResponseDto
             {
                 Id = s.Id,
@@ -93,10 +92,10 @@ public class StockMovementsController : ControllerBase
 
         var response = new PagedResponseDto<StockMovementResponseDto>
         {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
+            PageNumber = paginationParams.PageNumber,
+            PageSize = paginationParams.PageSize,
             TotalRecords = totalRecords,
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationParams.PageSize),
             Data = movements
         };
 
@@ -105,11 +104,10 @@ public class StockMovementsController : ControllerBase
 
     [HttpGet("product/{productId:int}")]
     public async Task<ActionResult<PagedResponseDto<StockMovementResponseDto>>> GetMovementsByProduct(
-    int productId,
-    int pageNumber = 1,
-    int pageSize = 10)
+        int productId,
+        [FromQuery] PaginationParams paginationParams)
     {
-        if (pageNumber <= 0)
+        if (paginationParams.PageNumber <= 0)
         {
             return BadRequest(new
             {
@@ -117,7 +115,7 @@ public class StockMovementsController : ControllerBase
             });
         }
 
-        if (pageSize <= 0 || pageSize > 100)
+        if (paginationParams.PageSize <= 0 || paginationParams.PageSize > 100)
         {
             return BadRequest(new
             {
@@ -145,8 +143,8 @@ public class StockMovementsController : ControllerBase
 
         var movements = await query
             .OrderByDescending(s => s.CreatedAt)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
             .Select(s => new StockMovementResponseDto
             {
                 Id = s.Id,
@@ -163,10 +161,10 @@ public class StockMovementsController : ControllerBase
 
         var response = new PagedResponseDto<StockMovementResponseDto>
         {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
+            PageNumber = paginationParams.PageNumber,
+            PageSize = paginationParams.PageSize,
             TotalRecords = totalRecords,
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationParams.PageSize),
             Data = movements
         };
 

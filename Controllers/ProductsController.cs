@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using StockFlow.Api.Data;
 using StockFlow.Api.DTOs;
 using StockFlow.Api.Models;
+using StockFlow.Api.Helpers;
 
 namespace StockFlow.Api.Controllers;
 
@@ -23,10 +24,9 @@ public class ProductsController : ControllerBase
     int? categoryId,
     bool? isActive,
     bool? lowStock,
-    int pageNumber = 1,
-    int pageSize = 10)
+    [FromQuery] PaginationParams paginationParams)
     {
-        if (pageNumber <= 0)
+        if (paginationParams.PageNumber <= 0)
         {
             return BadRequest(new
             {
@@ -34,11 +34,11 @@ public class ProductsController : ControllerBase
             });
         }
 
-        if (pageSize <= 0 || pageSize > 100)
+        if (paginationParams.PageSize <= 0)
         {
             return BadRequest(new
             {
-                message = "Page size must be between 1 and 100."
+                message = "Page size must be greater than zero."
             });
         }
 
@@ -76,8 +76,8 @@ public class ProductsController : ControllerBase
 
         var products = await query
             .OrderBy(p => p.Name)
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
+            .Skip((paginationParams.PageNumber - 1) * paginationParams.PageSize)
+            .Take(paginationParams.PageSize)
             .Select(p => new ProductResponseDto
             {
                 Id = p.Id,
@@ -98,10 +98,10 @@ public class ProductsController : ControllerBase
 
         var response = new PagedResponseDto<ProductResponseDto>
         {
-            PageNumber = pageNumber,
-            PageSize = pageSize,
+            PageNumber = paginationParams.PageNumber,
+            PageSize = paginationParams.PageSize,
             TotalRecords = totalRecords,
-            TotalPages = (int)Math.Ceiling(totalRecords / (double)pageSize),
+            TotalPages = (int)Math.Ceiling(totalRecords / (double)paginationParams.PageSize),
             Data = products
         };
 
