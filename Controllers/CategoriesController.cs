@@ -18,9 +18,9 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories(
-        string? search,
-        bool? isActive)
+    public async Task<ActionResult<IEnumerable<CategoryResponseDto>>> GetCategories(
+      string? search,
+      bool? isActive)
     {
         var query = _context.Categories.AsQueryable();
 
@@ -40,16 +40,31 @@ public class CategoriesController : ControllerBase
 
         var categories = await query
             .OrderBy(c => c.Name)
+            .Select(c => new CategoryResponseDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                IsActive = c.IsActive,
+                CreatedAt = c.CreatedAt
+            })
             .ToListAsync();
 
         return Ok(categories);
     }
 
     [HttpGet("{id:int}")]
-    public async Task<ActionResult<Category>> GetCategoryById(int id)
+    public async Task<ActionResult<CategoryResponseDto>> GetCategoryById(int id)
     {
         var category = await _context.Categories
-            .FirstOrDefaultAsync(c => c.Id == id);
+            .Where(c => c.Id == id)
+            .Select(c => new CategoryResponseDto
+            {
+                Id = c.Id,
+                Name = c.Name,
+                IsActive = c.IsActive,
+                CreatedAt = c.CreatedAt
+            })
+            .FirstOrDefaultAsync();
 
         if (category is null)
         {
@@ -63,7 +78,7 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Category>> CreateCategory(CreateCategoryDto createCategoryDto)
+    public async Task<ActionResult<CategoryResponseDto>> CreateCategory(CreateCategoryDto createCategoryDto)
     {
         if (string.IsNullOrWhiteSpace(createCategoryDto.Name))
         {
@@ -94,10 +109,18 @@ public class CategoriesController : ControllerBase
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
 
+        var response = new CategoryResponseDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            IsActive = category.IsActive,
+            CreatedAt = category.CreatedAt
+        };
+
         return CreatedAtAction(
             nameof(GetCategoryById),
             new { id = category.Id },
-            category
+            response
         );
     }
 
