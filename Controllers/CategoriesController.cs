@@ -166,4 +166,33 @@ public class CategoriesController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPatch("{id:int}/restore")]
+    public async Task<IActionResult> RestoreCategory(int id)
+    {
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id);
+
+        if (category is null)
+        {
+            return NotFound(new
+            {
+                message = "Category not found."
+            });
+        }
+
+        if (category.IsActive)
+        {
+            return BadRequest(new
+            {
+                message = "Category is already active."
+            });
+        }
+
+        category.IsActive = true;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }

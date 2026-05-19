@@ -435,4 +435,52 @@ public class ProductsController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPatch("{id:int}/restore")]
+    public async Task<IActionResult> RestoreProduct(int id)
+    {
+        var product = await _context.Products
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product is null)
+        {
+            return NotFound(new
+            {
+                message = "Product not found."
+            });
+        }
+
+        if (product.IsActive)
+        {
+            return BadRequest(new
+            {
+                message = "Product is already active."
+            });
+        }
+
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == product.CategoryId);
+
+        if (category is null)
+        {
+            return BadRequest(new
+            {
+                message = "Product category does not exist."
+            });
+        }
+
+        if (!category.IsActive)
+        {
+            return BadRequest(new
+            {
+                message = "Cannot restore product because its category is inactive."
+            });
+        }
+
+        product.IsActive = true;
+
+        await _context.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
