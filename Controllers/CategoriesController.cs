@@ -18,9 +18,27 @@ public class CategoriesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+    public async Task<ActionResult<IEnumerable<Category>>> GetCategories(
+        string? search,
+        bool? isActive)
     {
-        var categories = await _context.Categories
+        var query = _context.Categories.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var normalizedSearch = search.Trim().ToLower();
+
+            query = query.Where(c =>
+                c.Name.ToLower().Contains(normalizedSearch)
+            );
+        }
+
+        if (isActive.HasValue)
+        {
+            query = query.Where(c => c.IsActive == isActive.Value);
+        }
+
+        var categories = await query
             .OrderBy(c => c.Name)
             .ToListAsync();
 
