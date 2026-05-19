@@ -20,11 +20,11 @@ public class ProductsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<PagedResponseDto<ProductResponseDto>>> GetProducts(
-    string? search,
-    int? categoryId,
-    bool? isActive,
-    bool? lowStock,
-    [FromQuery] PaginationParams paginationParams)
+        string? search,
+        int? categoryId,
+        bool? isActive,
+        bool? lowStock,
+        [FromQuery] PaginationParams paginationParams)
     {
         if (paginationParams.PageNumber <= 0)
         {
@@ -405,6 +405,47 @@ public class ProductsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    [HttpPost("recalculate-prices")]
+    public async Task<ActionResult<RecalculatePricesResponseDto>> RecalculatePrices()
+    {
+        var latestExchangeRate = await _context.ExchangeRates
+            .OrderByDescending(e => e.Date)
+            .FirstOrDefaultAsync();
+
+        if (latestExchangeRate is null)
+        {
+            return BadRequest(new
+            {
+                message = "No exchange rate has been registered yet."
+            });
+        }
+
+        var products = await _context.Products
+            .Where(p => p.IsActive)
+            .ToListAsync();
+
+        foreach (var product in products)
+        {
+            var marginMultiplier = 1 + (product.ProfitMarginPercentage / 100);
+
+            product.PriceArs = Math.Round(
+                product.CostUsd * latestExchangeRate.Value * marginMultiplier,
+                2
+            );
+        }
+
+        await _context.SaveChangesAsync();
+
+        var response = new RecalculatePricesResponseDto
+        {
+            UpdatedProducts = products.Count,
+            ExchangeRate = latestExchangeRate.Value,
+            ExchangeRateDate = latestExchangeRate.Date
+        };
+
+        return Ok(response);
     }
 
     [HttpDelete("{id:int}")]
