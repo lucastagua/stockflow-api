@@ -232,14 +232,13 @@ public class ProductsController : ControllerBase
             });
         }
 
-        var marginMultiplier = 1 + (createProductDto.ProfitMarginPercentage / 100);
-
-        var calculatedPriceArs = Math.Round(
-            createProductDto.CostUsd * latestExchangeRate.Value * marginMultiplier,
-            2
+        var calculatedPriceArs = PriceCalculator.CalculatePriceArs(
+            createProductDto.CostUsd,
+            latestExchangeRate.Value,
+            createProductDto.ProfitMarginPercentage
         );
 
-    var product = new Product
+        var product = new Product
         {
             Name = createProductDto.Name.Trim(),
             Brand = createProductDto.Brand?.Trim(),
@@ -384,11 +383,10 @@ public class ProductsController : ControllerBase
             });
         }
 
-        var marginMultiplier = 1 + (updateProductDto.ProfitMarginPercentage / 100);
-
-        var calculatedPriceArs = Math.Round(
-            updateProductDto.CostUsd * latestExchangeRate.Value * marginMultiplier,
-            2
+        var calculatedPriceArs = PriceCalculator.CalculatePriceArs(
+            updateProductDto.CostUsd,
+            latestExchangeRate.Value,
+            updateProductDto.ProfitMarginPercentage
         );
 
         product.Name = updateProductDto.Name.Trim();
@@ -428,11 +426,10 @@ public class ProductsController : ControllerBase
 
         foreach (var product in products)
         {
-            var marginMultiplier = 1 + (product.ProfitMarginPercentage / 100);
-
-            product.PriceArs = Math.Round(
-                product.CostUsd * latestExchangeRate.Value * marginMultiplier,
-                2
+            product.PriceArs = PriceCalculator.CalculatePriceArs(
+                product.CostUsd,
+                latestExchangeRate.Value,
+                product.ProfitMarginPercentage
             );
         }
 

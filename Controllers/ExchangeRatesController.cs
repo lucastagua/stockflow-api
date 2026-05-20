@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using StockFlow.Api.Data;
 using StockFlow.Api.DTOs;
 using StockFlow.Api.Models;
+using StockFlow.Api.Helpers;
 
 namespace StockFlow.Api.Controllers;
 
@@ -104,16 +105,18 @@ public class ExchangeRatesController : ControllerBase
             });
         }
 
-        var marginMultiplier = 1 + (calculatePriceDto.ProfitMarginPercentage / 100);
-
-        var suggestedPrice = calculatePriceDto.CostUsd * latestRate.Value * marginMultiplier;
+        var suggestedPrice = PriceCalculator.CalculatePriceArs(
+            calculatePriceDto.CostUsd,
+            latestRate.Value,
+            calculatePriceDto.ProfitMarginPercentage
+        );
 
         var response = new CalculatedPriceResponseDto
         {
             CostUsd = calculatePriceDto.CostUsd,
             ExchangeRate = latestRate.Value,
             ProfitMarginPercentage = calculatePriceDto.ProfitMarginPercentage,
-            SuggestedPriceArs = Math.Round(suggestedPrice, 2)
+            SuggestedPriceArs = suggestedPrice
         };
 
         return Ok(response);
