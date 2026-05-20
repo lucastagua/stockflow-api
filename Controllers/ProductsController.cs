@@ -4,6 +4,7 @@ using StockFlow.Api.Data;
 using StockFlow.Api.DTOs;
 using StockFlow.Api.Models;
 using StockFlow.Api.Helpers;
+using StockFlow.Api.Mappings;
 
 namespace StockFlow.Api.Controllers;
 
@@ -256,22 +257,7 @@ public class ProductsController : ControllerBase
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
-        var productResponse = new ProductResponseDto
-        {
-            Id = product.Id,
-            Name = product.Name,
-            Brand = product.Brand,
-            Sku = product.Sku,
-            CostUsd = product.CostUsd,
-            ProfitMarginPercentage = product.ProfitMarginPercentage,
-            PriceArs = product.PriceArs,
-            Stock = product.Stock,
-            MinimumStock = product.MinimumStock,
-            IsActive = product.IsActive,
-            CreatedAt = product.CreatedAt,
-            CategoryId = product.CategoryId,
-            CategoryName = string.Empty
-        };
+        var productResponse = ProductMapper.ToResponseDto(product);
 
         return CreatedAtAction(
             nameof(GetProductById),
